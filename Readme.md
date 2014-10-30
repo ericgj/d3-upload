@@ -12,7 +12,7 @@
   - Per-upload 'abort' link
   - Delete link
   - Integrated UI for listing uploaded/uploading files
-  - You provide (stateful) POST and (stateless) GET XHR functions
+  - You provide (stateful) POST and (stateless) GET XHR; backend-agnostic
   - Detailed event-state model
   - Server 'processing' state (after upload finished but before server response)
   - Structural styling only
