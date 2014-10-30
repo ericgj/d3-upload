@@ -137,7 +137,7 @@
          tick.call(xhr,data);
          if (!(xhr.readyState == 4)) { xhr.send(data); }
          else                        { window.clearTimeout(xhr._timer); }
-       }, Math.random() * 100 );       
+       }, Math.random() * 1000);       
      }
      
      FakeXHR.prototype.abort = function(){

@@ -3,6 +3,8 @@
 
   Async file upload UI
 
+  ![screenshot](http://i.imgur.com/BkD9QtN.jpg)
+
 ## Features
 
   - Immediate (not batched) XHR uploads
