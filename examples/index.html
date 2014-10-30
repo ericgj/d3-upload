@@ -1,0 +1,168 @@
+<html>
+  <head>
+    <title>d3-upload example</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <script src="d3.v3.min.js"></script>
+    <link rel="stylesheet" href="../build/build.css" />
+    <style>
+
+      .d3-upload ul {
+        list-style-type: none;
+      }
+
+      .attach .upload.uploaded {
+        display: none;
+      }
+
+      .d3-upload .upload {
+        padding: 0.5%;
+        margin: 0.5%;
+        border: 1px solid lightgrey;
+        border-radius: 3px;
+      }
+
+      .d3-upload .upload.uploaded {
+        background-color: lavender;
+      }
+
+      .d3-upload .upload.error {
+        color: red;
+      }
+
+      .d3-upload .upload.aborted {
+        color: lightgrey;
+      }
+
+      .d3-upload .upload a {
+        text-decoration: none;
+      }
+
+      .d3-upload .upload > .view > .status {
+        text-transform: uppercase;
+        font-size: 0.7em;
+      }
+
+      .d3-upload .upload > .view > .progress .bar {
+        fill: steelblue;
+      }
+    
+    </style>
+  </head>
+  <body>
+
+    <section id="main">
+      <section id="page">
+        <h1>d3-upload example</h1>
+        <div class="attach"></div>
+        <div class="attached"></div>
+      </section>
+    </section>
+
+    <script src="../build/build.js"></script>
+    <script>
+     'use strict';
+
+     var Upload = require('d3-upload')
+     
+     var attachRoot = d3.select('#page > .attach')
+     var attachedRoot = d3.select('#page > .attached')
+     
+     var uploadCreatePanel = Upload.create().using( postFactory );
+     uploadCreatePanel.form.labelButton('Attach');
+
+     var uploadListPanel   = Upload.list().using( fetch );
+     uploadCreatePanel.on('uploaded', renderUploadListPanel);
+     uploadListPanel.view.on('del', delUpload);
+
+     renderUploadCreatePanel();
+     renderUploadListPanel();
+
+     function renderUploadCreatePanel(){
+       attachRoot.call( uploadCreatePanel );
+     }
+
+     function renderUploadListPanel(){
+       attachedRoot.call( uploadListPanel );
+     }
+
+     function delUpload(d,i){
+       console.info('delete upload %d: %o', i, d);
+     }
+
+
+     /*************************
+        Fake backend below.
+        Please note that because FormData is inaccessible from normal javascript,
+        the file info cannot be displayed for "uploaded" files. So instead, it 
+        displays a counter of uploaded files as the "file name".
+     */
+
+     var UPLOADS = [];
+     
+     function postFactory(){
+       return new FakeXHR({ files: UPLOADS});
+     }
+     
+     function fetch(fn){
+        window.setTimeout( function(){
+          fn(null, UPLOADS.slice(0).reverse());
+        }, Math.random() * 100);
+     }
+     
+     function noop(){};
+     
+     function FakeXHR(opts){
+       this.onload = noop;
+       this.onerror = noop;
+       this.ontimeout = noop;
+       this.upload = { onprogress: noop };
+       this.onreadystatechange = noop;
+       this.status = null;
+       this.statusText = '';
+       this.readyState = 0;
+       this._progress = 0;
+       this._size = 0;
+       opts = opts || {};
+       this._files = opts.files = opts.files || [];
+     }
+     
+     FakeXHR.prototype.send = function(data){
+       if (this.readyState == 0){
+         this.readyState = 1;
+         this._size = Math.random() * 1000;
+         this.onreadystatechange({target: this});
+       }
+       var xhr = this;
+       this._timer = window.setTimeout( function(){
+         tick.call(xhr,data);
+         if (!(xhr.readyState == 4)) { xhr.send(data); }
+         else                        { window.clearTimeout(xhr._timer); }
+       }, Math.random() * 100 );       
+     }
+     
+     FakeXHR.prototype.abort = function(){
+       if (xhr._timer) window.clearTimeout(xhr._timer);
+     }
+     
+     function tick(data){
+       if (this._progress >= 100) { 
+         this.readyState = 4; 
+         this.status = 200;
+         this.statusText = 'OK';
+         this._files.push({
+           name: "" + this._files.length,
+           size: this._size
+         });
+         this.onreadystatechange({target: this});
+         this.onload({target: this});
+         return; 
+       }
+       this._progress = this._progress + (Math.random() * 10)
+       var size = this._size;
+       this.upload.onprogress({loaded: size * (this._progress/100), total: size});
+     }
+     
+    </script>
+  </body>
+</html>
+ 

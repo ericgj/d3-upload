@@ -1,0 +1,27 @@
+{
+  "name": "d3-upload",
+  "repo": "ericgj/d3-upload",
+  "description": "Async file upload UI",
+  "version": "0.0.1",
+  "keywords": [],
+  "dependencies": {
+    "ericgj/model": "master",
+    "ericgj/d3-form": "master",
+    "ericgj/d3-dispatch": "master",
+    "ericgj/d3-rebind": "master"
+  },
+  "development": {},
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": [
+    "index.js",
+    "model.js",
+    "form.js",
+    "view.js",
+    "panel-list.js",
+    "panel-create.js"
+  ],
+  "styles": [
+    "d3-upload.css"
+  ]
+}

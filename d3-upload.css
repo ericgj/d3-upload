@@ -1,0 +1,43 @@
+
+/* structural and defaults */
+
+.d3-upload .upload div {
+  display: inline-block;
+  min-width: 1px;
+}
+
+.d3-upload .upload > .view {
+  width: 100%;
+}
+
+.d3-upload .upload > .view > .del {
+  float: right;
+}
+
+.d3-upload .upload > .view > * {
+  display: inline-block;
+  margin-right: 1%;
+}
+
+.d3-upload .upload > .view > .title span {
+  padding-right: 1em;
+}
+
+.d3-upload .upload > .view > .progress .end {
+  stroke: lightgrey;
+  stroke-width: 1;
+}
+
+.d3-upload .upload > .view > .abort {
+  color: darkgrey;
+  cursor: pointer;
+}
+
+.d3-upload .upload > .view > .del > a::after {
+  color: darkgrey;
+  content: "⨯";
+}
+
+
+
+
