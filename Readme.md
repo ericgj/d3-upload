@@ -3,6 +3,19 @@
 
   Async file upload UI
 
+## Features
+
+  - Immediate (not batched) XHR uploads
+  - Multiple simultaneous uploads 
+  - Per-upload 'abort' link
+  - Delete link
+  - Integrated UI for listing uploaded/uploading files
+  - You provide (stateful) POST and (stateless) GET XHR functions
+  - Detailed event-state model
+  - Server 'processing' state (after upload finished but before server response)
+  - Structural styling only
+  - SVG progress bars
+
 ## Installation
 
   Install with [component(1)](http://component.io):
