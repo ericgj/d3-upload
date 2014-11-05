@@ -2,7 +2,7 @@
   "name": "d3-upload",
   "repo": "ericgj/d3-upload",
   "description": "Async file upload UI",
-  "version": "0.0.2",
+  "version": "0.1.1",
   "keywords": [],
   "dependencies": {
     "ericgj/model": "master",
