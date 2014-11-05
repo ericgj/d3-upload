@@ -7,7 +7,8 @@
 
 ## Features
 
-  - Immediate (not batched) XHR uploads
+  - Immediate (not queued) XHR uploads, by default
+  - Optional queued XHR uploads, with customizable display of queued files
   - Multiple simultaneous uploads 
   - Per-upload 'abort' link
   - Delete link
