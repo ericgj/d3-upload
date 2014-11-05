@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>d3-upload example :: immediate mode</title>
+    <title>d3-upload example :: queued mode</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <script src="d3.v3.min.js"></script>
     <link rel="stylesheet" href="../build/build.css" />
@@ -61,7 +61,7 @@
     <section id="main">
       <section id="page">
         <h1>d3-upload example</h1>
-        <h2>immediate (non-queued) mode</h2>
+        <h2>queued (non-immediate) mode</h2>
         <div class="attach"></div>
         <div class="attached"></div>
       </section>
@@ -77,7 +77,11 @@
      var attachedRoot = d3.select('#page > .attached')
      
      var uploadCreatePanel = Upload.create().using( postFactory );
-     uploadCreatePanel.form.labelButton('Attach');
+     uploadCreatePanel.form
+                        .labelChoose('Choose files...')
+                        .labelSubmit('Attach')
+                        .immediate(false)
+                        .on('queue', renderQueue);
 
      var uploadListPanel   = Upload.list().using( fetch );
      uploadCreatePanel.on('uploaded', renderUploadListPanel);
@@ -85,6 +89,10 @@
 
      renderUploadCreatePanel();
      renderUploadListPanel();
+
+     function renderQueue(q){
+       attachRoot.call( queueList, q );
+     }
 
      function renderUploadCreatePanel(){
        attachRoot.call( uploadCreatePanel );
@@ -98,6 +106,17 @@
        console.info('delete upload %d: %o', i, d);
      }
 
+     function queueList(selection, q){
+       var div = selection.selectAll('.upload-queue').data([0]);
+           div.enter().append('div').classed('upload-queue',true)
+                      .append('ul');
+       var li = div.select('ul').selectAll('li').data(q);
+           li.enter().append('li');
+       li.text(function(d){ return d.file.name + ' (' + Math.round(d.file.size / 1024) + 'k)'; } )
+
+       li.exit().remove();
+       div.exit().remove();
+     }
 
      /*************************
         Fake backend below.

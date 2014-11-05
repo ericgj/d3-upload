@@ -7,39 +7,51 @@ var Upload = require('./model')
 
 module.exports = function(){
 
-  var buffer = []
-    , upload
-    , labelButton = null
-    , dispatcher = dispatch("upload");
+  var upload
+    , labelChoose = null
+    , labelSubmit = null
+    , immediate = true
+    , dispatcher = dispatch("queue", "upload");
 
   // upload is a factory function returning an "open" xhr (url is set)
   render.using = function(_){
     upload = _; return this;
   }
 
-  render.labelButton = function(_){
-    labelButton = _; return this;
+  render.labelChoose = render.labelButton = function(_){
+    labelChoose = _; return this;
+  }
+
+  render.labelSubmit = function(_){
+    labelSubmit = _; return this;
+  }
+  
+  render.immediate = function(_){
+    immediate = _; return this;
   }
 
   function render(selection){ 
     selection.call(
       UploadForm().classed('upload-form')
-            .labelButton(labelButton)
-            .onInput( push  )
-            .onSubmit( shift )
+            .labelSubmit(labelSubmit)
+            .labelChoose(labelChoose)
+            .immediate(immediate)
+            .onInput( dispatchQueue  )
+            .onSubmit( applyEach( processQueue, clearQueue ) )
     );
 
   }
 
-  function shift(){
-    buffer.forEach( send );
-    buffer = [];
+  function dispatchQueue(q){
+    dispatcher.queue(q);
   }
 
-  // note this works only because the form has a single field
-  function push(k,v){
-    var input = {}; input[k] = v;
-    if (input.file) buffer.push(input);
+  function clearQueue(){
+    dispatcher.queue([]);
+  }
+
+  function processQueue(q){
+    q.forEach( send );
   }
 
   function send(file){
@@ -70,14 +82,9 @@ module.exports = function(){
   rebind(render, dispatcher, 'on'); 
   return render;
 }
- 
-function formdata(file){
-  var body = new FormData();
-  for (var k in file){
-    body.append(k, file[k]);
-  }
-  return body;
-}
+
+
+// upload state functions
 
 function setUploading(file){
   return function(){
@@ -136,20 +143,51 @@ function isErrorResponse(xhr){
          ((xhr.status < 200 || xhr.status >= 300) && status !== 304);
 }
 
+
+// utils
+
+function applyEach(){
+  var self = this;
+  var fns = [].slice.call(arguments,0);
+  return function(){
+    var args = [].slice.call(arguments,0);
+    for (var i=0;i<fns.length;++i){
+      var fn = fns[i];
+      fn.apply(self, args);
+    }
+  }
+}
+
+
 // UI
+
+function formdata(file){
+  var body = new FormData();
+  for (var k in file){
+    body.append(k, file[k]);
+  }
+  return body;
+}
+
 
 function UploadForm(){
 
   var onSubmit, onInput
     , formclass = ''
-    , labelButton = null
+    , labelChoose = null
+    , labelSubmit = null
+    , immediate
 
   render.classed = function(_){
     formclass = _; return this;
   }
 
-  render.labelButton = function(_){
-    labelButton = _; return this;
+  render.labelChoose = function(_){
+    labelChoose = _; return this;
+  }
+
+  render.labelSubmit = function(_){
+    labelSubmit = _; return this;
   }
 
   render.onSubmit = function(_){
@@ -160,6 +198,10 @@ function UploadForm(){
     onInput = _; return this;
   }
 
+  render.immediate = function(_){
+    immediate = !!_; return this;
+  }
+
   function render(selection){
     var selector = 'form' + (!!formclass ? '.' + formclass : '');
     var form = selection.selectAll(selector).data([0]);
@@ -167,22 +209,26 @@ function UploadForm(){
         enter.append('input')
                .attr('type','file')
                .attr('name','file')
+               .attr('multiple', '')
                .style('display','none');
         enter.append('button')
                .attr('type','button')
-               .attr('name','upload');
+               .attr('name','choose');
         enter.append('button')
                .attr('type','submit')
-               .style('display','none');
-    var input = form.select('[name="file"]');
-    var choose = form.select('[name="upload"]');
+               .style('display', immediate ? 'none' : null);
+
+    var input = form.select('input[type="file"]');
+    var choose = form.select('[name="choose"]');
     var submit = form.select('[type="submit"]');
 
-    choose.text(labelButton);
+    choose.text(labelChoose);
+    submit.text(labelSubmit);
 
     choose.on('click', trigger(input, 'click') );
     input.on('change', handleInput);
-    input.on('change.submit', trigger(submit, 'click') );
+    if (immediate) 
+      input.on('change.submit', trigger(submit, 'click') );
     form.on('submit', preventDefault( handleSubmit ) );
     form.on('submit.reset', trigger(form, 'reset') );
   }
@@ -202,18 +248,25 @@ function UploadForm(){
 
   function handleInput(){
     if (!onInput) return;
-    for (var i=0;i<this.files.length;++i){
-      var file = this.files.item(i)
-      if (!file) continue;
-      onInput('file', file);
-    }
-  }
-  
-  function handleSubmit(){
-    if (!onSubmit) return;
-    onSubmit();
+    onInput( queuedFiles(this) );
   }
 
+  function handleSubmit(){
+    if (!onSubmit) return;
+    var input = d3.select(this).select('input[type="file"]');
+    onSubmit( queuedFiles( input.node() ) );
+  }
+
+  function queuedFiles(el){
+    var q = [];
+    for (var i=0;i<el.files.length;++i){
+      var file = el.files.item(i)
+      if (!file) continue;
+      q.push({file: file});
+    }
+    return q;
+  }
+  
   return render;
 }
 
