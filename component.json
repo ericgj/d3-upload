@@ -6,7 +6,6 @@
   "keywords": [],
   "dependencies": {
     "ericgj/model": "master",
-    "ericgj/d3-form": "master",
     "ericgj/d3-dispatch": "master",
     "ericgj/d3-rebind": "master"
   },

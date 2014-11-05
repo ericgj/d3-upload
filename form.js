@@ -1,7 +1,6 @@
 'use strict';
 
-var Form  = require('d3-form')
-  , Upload = require('./model')
+var Upload = require('./model')
   , dispatch = require('d3-dispatch')
   , rebind = require('d3-rebind')
 
@@ -10,7 +9,7 @@ module.exports = function(){
 
   var buffer = []
     , upload
-    , labelButton
+    , labelButton = null
     , dispatcher = dispatch("upload");
 
   // upload is a factory function returning an "open" xhr (url is set)
@@ -24,29 +23,23 @@ module.exports = function(){
 
   function render(selection){ 
     selection.call(
-      Form().classed('upload-form')
-            .field( DelegateInput('upload').type('button').delegates('click', 'file') )
-            .field( FileInput('file').dispatches('submit') ) 
-            .on('input',  push  )
-            .on('submit', shift )
-            .on('submit.reset', reset )
+      UploadForm().classed('upload-form')
+            .labelButton(labelButton)
+            .onInput( push  )
+            .onSubmit( shift )
     );
 
-    if (labelButton){ 
-      selection.select('input[name="upload"]').attr('value',labelButton);
-    }
-
-    // not ideal, may cause problems in edge case of multiple forms under selection
-    function reset(){
-      var form = selection.select('form.upload-form').node();
-      form.reset();
-    }
   }
-
 
   function shift(){
     buffer.forEach( send );
     buffer = [];
+  }
+
+  // note this works only because the form has a single field
+  function push(k,v){
+    var input = {}; input[k] = v;
+    if (input.file) buffer.push(input);
   }
 
   function send(file){
@@ -72,12 +65,6 @@ module.exports = function(){
 
     // start upload
     xhr.send( formdata(file.changedValue()) );
-  }
-
-  // note this works only because the form has a single field
-  function push(k,v){
-    var input = {}; input[k] = v;
-    if (input.file) buffer.push(input);
   }
 
   rebind(render, dispatcher, 'on'); 
@@ -151,82 +138,83 @@ function isErrorResponse(xhr){
 
 // UI
 
-function DelegateInput(name){
+function UploadForm(){
 
-  var type = 'text'
-    , delegates = {}
+  var onSubmit, onInput
+    , formclass = ''
+    , labelButton = null
 
-  render.type = function(_){
-    type = _; return this;
+  render.classed = function(_){
+    formclass = _; return this;
   }
 
-  render.delegates = function(event, other){
-    delegates[event] = other; return this;
+  render.labelButton = function(_){
+    labelButton = _; return this;
   }
 
-  render.enter = function(enter){
-    enter.append('input')
-         .attr('type', type)
-         .attr('name', name);
-
+  render.onSubmit = function(_){
+    onSubmit = _; return this;
   }
 
-  function render(box){
-    var field = box.select('[name='+name+']');
+  render.onInput = function(_){
+    onInput = _; return this;
+  }
 
-    for (var k in delegates){
-      var parent = d3.select(box.node().parentNode)
-        , target = parent.select('[name='+delegates[k]+']')
-      if (!target || target.empty()) {
-        throw new Error('No such delegate field: ' + delegates[k]);
-      }
-      var el = target.node();
-      if (!el[k]) {
-        throw new Error('No such delegate event: ' + k);
-      }
-      field.on(k, el[k].bind(el));  
+  function render(selection){
+    var selector = 'form' + (!!formclass ? '.' + formclass : '');
+    var form = selection.selectAll(selector).data([0]);
+    var enter = form.enter().append('form').classed(formclass, !!formclass);
+        enter.append('input')
+               .attr('type','file')
+               .attr('name','file')
+               .style('display','none');
+        enter.append('button')
+               .attr('type','button')
+               .attr('name','upload');
+        enter.append('button')
+               .attr('type','submit')
+               .style('display','none');
+    var input = form.select('[name="file"]');
+    var choose = form.select('[name="upload"]');
+    var submit = form.select('[type="submit"]');
+
+    choose.text(labelButton);
+
+    choose.on('click', trigger(input, 'click') );
+    input.on('change', handleInput);
+    input.on('change.submit', trigger(submit, 'click') );
+    form.on('submit', preventDefault( handleSubmit ) );
+    form.on('submit.reset', trigger(form, 'reset') );
+  }
+
+  function trigger(selection, evt){
+    var el = selection.node();
+    return el[evt].bind(el);
+  }
+
+  function preventDefault(fn){
+    return function(){
+      var args = [].slice.call(arguments,0);
+      fn.apply(this,args);
+      d3.event.preventDefault();
     }
   }
 
-  return render;
-}
-
-function FileInput(name){
-  
-  var dispatcher
-    , dispatches
-
-  render.dispatch = function(_){
-    dispatcher = _; return this;
-  }
-  
-  render.dispatches = function(_){
-    dispatches = _; return this;
-  }
-
-  render.enter = function(enter){
-    enter.append('input')
-         .attr('type','file')
-         .attr('name',name)
-         .style('display','none');
-  }
-
-  function render(box){
-    var input = box.select('input[name='+name+']');
-    
-    if (dispatcher){
-      input.on('change', dispatchInput );
-    }
-  }
-
-  function dispatchInput(){
+  function handleInput(){
+    if (!onInput) return;
     for (var i=0;i<this.files.length;++i){
       var file = this.files.item(i)
       if (!file) continue;
-      dispatcher.input('file', file);
+      onInput('file', file);
     }
-    if (dispatches) dispatcher[dispatches]();
+  }
+  
+  function handleSubmit(){
+    if (!onSubmit) return;
+    onSubmit();
   }
 
   return render;
 }
+
+
